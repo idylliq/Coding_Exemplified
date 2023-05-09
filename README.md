@@ -18,7 +18,7 @@ Data transformation: The dataset was transformed to a tidy format, where each ro
 Data export: The cleaned dataset was saved in `.Rdata` format and made available on GitHub Page.
 
 ## Step by step guide
-Navigate to GitHub page for the repositary and click on the dependency file to see the step by step information on cleaning process with explanation of what particular code chunk does.
+Navigate to GitHub page for the repositary and click on the `view deployment`  file to see the step by step information on cleaning process with explanation of what particular code chunk does.
 
 ## Acknowledgments
 The World Macroeconomic Outlook dataset is provided by the International Monetary Fund and is available under the Creative Commons Attribution-ShareAlike 3.0 License. This project is not affiliated with or endorsed by the International Monetary Fund.
