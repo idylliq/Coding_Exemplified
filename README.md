@@ -2,7 +2,7 @@
 This project aims to clean the World Macroeconomic Outlook dataset and make it ready for analysis. The dataset contains macroeconomic indicators of various countries, and it is available on the International Monetary Fund's website. The cleaned dataset can be used to conduct a wide range of analyses, such as trend analysis, forecasting, and modeling.
 
 ## Dataset
-The World Macroeconomic Outlook dataset contains data on several macroeconomic indicators, such as GDP, inflation, unemployment, and trade balance, for various countries. The dataset is available in CSV format and can be downloaded from the IMF's website.
+The World Macroeconomic Outlook dataset contains data on several macroeconomic indicators, such as GDP, inflation, unemployment, and trade balance, for various countries. The dataset is available in CSV format and can be downloaded from the IMF's website. In the repository it has been added as`WEOOCT2022.CSV`.
 
 ## Cleaning Process
 The cleaning process involved several steps, including:
@@ -15,7 +15,7 @@ Data cleaning: The missing values were imputed using appropriate methods, such a
 
 Data transformation: The dataset was transformed to a tidy format, where each row represents a unique observation, and each column represents a variable.
 
-Data export: The cleaned dataset was saved in `.Rdata` format and made available on GitHub Page.
+Data export: The cleaned dataset was saved in `World Macroeconomic Outlook.Rdata` format and made available on GitHub Page.
 
 ## Step by step guide
 Navigate to GitHub page for the repositary and click on the `view deployment`  file to see the step by step information on cleaning process with explanation of what particular code chunk does.
