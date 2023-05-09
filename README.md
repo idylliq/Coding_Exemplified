@@ -16,6 +16,7 @@ Data cleaning: The missing values were imputed using appropriate methods, such a
 Data transformation: The dataset was transformed to a tidy format, where each row represents a unique observation, and each column represents a variable.
 
 Data export: The cleaned dataset was saved in `World Macroeconomic Outlook.Rdata` format and made available on GitHub Page.
+The cleaned version of the codebook created is also attached here in the repository as a word file named `Codebook.docx`.
 
 ## Step by step guide
 Navigate to GitHub page for the repositary and click on the `view deployment`  file to see the step by step information on cleaning process with explanation of what particular code chunk does.
