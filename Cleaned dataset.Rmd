@@ -1,0 +1,247 @@
+---
+title: "Creating Cleaned WEO Data Set"
+output: github_document
+---
+# Introduction
+
+Okay! Lets Get Going. I am using the World MacroEconomic Outlook data published by IMF twice a year. For the purpose of this presentation, I am usig the lastest dataset available in the series i.e. October 2023. 
+```{r setup, include = FALSE}
+
+
+setwd('C:/Users/bharg/OneDrive/Desktop/SIS/Data Analysis/awd')
+
+library(lubridate)
+library(tidyverse)
+library(patchwork)
+library(rmarkdown)
+library(knitr)
+library(tinytex)
+library(readxl)
+library(magrittr)
+library(codebookr)
+
+weo = read_csv('WEOOct2022.csv')
+```
+
+## Data Summary
+
+Lets look at how the data look like!! We can see that it is very messy and disorganized. It is Raw. It is in complex and unstructured format. Without proper organization, labeling, and formatting, raw data can be overwhelming and difficult to interpret. Additionally, it contains missing or erroneous information. Instead of variable names we have years in the columns and all the economic determinants are under WEO subject code and discription columns. Lets Clean it, step by step.
+```{r summary, echo = T, include = T}
+summary(weo)
+```
+## Filtering Out
+
+I am going to use selected 10 economic indicators out of many under the  WEO Subject Code column. Lets Rename the column names and filter out a shorter dataset with the indicators we are interested in...
+
+```{r filter, echo = T, include = T}
+
+weo  %<>% 
+  rename("Subject_Code" = "WEO Subject Code")
+weo  %<>% 
+  rename("Country_Code" = "WEO Country Code")
+
+weo1 = weo %>% 
+  filter(Subject_Code == 'NGDP_RPCH' | Subject_Code == 'PPPSH'|
+         Subject_Code == 'PCPIPCH' | Subject_Code == 'LUR' |
+           Subject_Code == 'LE' |  Subject_Code == 'LP'| 
+           Subject_Code == 'GGR_NGDP' | Subject_Code == 'GGX_NGDP' |
+           Subject_Code == 'GGXWDN_NGDP' | Subject_Code ==  'BCA_NGDPD')
+```
+
+## Pivoting Longer
+
+The need to pivot longer arises when data is stored in a format that makes it difficult to analyze, we can see that we have year numbers as columns so by bringing all year columns under one column called "year", we can create a more organized and structured dataset that is easier to work with. We put all the values under different years in a new coulumn called "Values". Doing both of these things allows us to conduct trend analysis, perform calculations, and draw insights across multiple years without having to refer to each individual column separately. 
+Then, I am selecting the specific columns from the dataset to carry out further cleaning.
+
+```{r Longer, echo = T, include = T}
+weo2 =
+  weo1 %>%
+  pivot_longer(
+    cols = c(31:50),
+    names_to = 'year',
+    names_transform = list(year = as.integer),
+    values_to = 'Values'
+  )
+
+weo3 =
+  weo2 %>% 
+  select(Country, ISO, Country_Code, Subject_Code, year, Values)
+```
+
+## Pivoting Wider
+
+With following codes, I am widening the dataset and creating a new ID Variable. I am converting chosen indicators under Subject Code column into seperate variables and assigning them values from the "Values" variable.
+
+```{r wider, echo = T, include = T}
+weo4 =
+  weo3 %>%
+  pivot_wider(
+    names_from = Subject_Code ,
+    values_from = Values
+  )  
+
+weo4 %<>%  #creating a ID variable
+  mutate(
+    RID = row_number(), .before = 1
+  )
+
+```
+
+## Final touch
+
+With this code chunk, I am further cleaning the dataset. Renaming the variables, making implicit NAs explicit and converting the character variables (those are supposed to be numeric) into numeric. I am also creating an ordered factor variable with a cool function. Until this step, we were working on a matrix which will also be converted into a proper dataset and select the columns which we are interested in having in our dataset:
+```{r cleaning, echo =TRUE, include=TRUE}
+weo4  %<>% 
+  rename("YEAR" = "year")
+weo4  %<>% 
+  rename("COUNTRY" = "Country")       
+
+val_repl <- c('n/a') #replacing the implit n/a into explicit NA
+weo5 = sapply(weo4,                           
+                    function(x) replace(x, x %in% val_repl, NA))
+weo5 = as.data.frame(weo5)
+
+
+
+vec = c(6:15) #converting certain charater varibles into numeric 
+weo5[ , vec] = apply(weo5[ , vec,drop=F], 2,          
+                            function(x) as.numeric(as.character(x)))
+ 
+
+FctWhen = function(...) {
+  args = rlang::list2(...)
+  rhs = map(args, rlang::f_rhs)
+  cases = case_when( !!!args )
+  exec(fct_relevel, cases, !!!rhs)
+}  
+
+weo5%<>% ##creating a factor variable for unemployment rate
+  mutate(
+    UR = FctWhen(
+      LUR < 5 ~ 'Low',
+      LUR %in% 5:9 ~ 'Moderate',
+      LUR  > 9 ~ 'High',
+      TRUE ~ '99'
+    )
+  )
+
+weo5%<>% #creating a factor variable for debt sustainability
+  mutate(
+    SUS = FctWhen(
+      GGXWDN_NGDP < 77 ~ 'Sustainable',
+      GGXWDN_NGDP  > 77 ~ 'Unsustainable',
+      TRUE ~ '99'
+    )
+  )
+
+weo6 = weo5 %>% #selecting variables in desired order
+  select(RID, COUNTRY, ISO, Country_Code, YEAR, NGDP_RPCH,PPPSH,PCPIPCH, LUR, UR, LP, GGR_NGDP, GGX_NGDP, GGXWDN_NGDP, SUS, BCA_NGDPD)
+
+```
+## Lets see how our dataset looks!!
+```{r,final, echo =TRUE, include =TRUE}
+summary(weo6)
+```
+## Codebook
+Now the coolest thing ever! We can create a codebook with all the essential information about variables using just one code command. But you need to make sure that you have described each variable. Here I am adding source and description to all the variables followed by the code to print the code book as a word file. Remember, you must edit the codebook to remove undesired content and add important stuff. You can compare the output of this codes with the code book I have uploaded in this repository.
+
+```{r codebook1, echo=TRUE, include=TRUE}
+weo7 = weo6 %>%
+  cb_add_col_attributes(
+    RID,
+    description = "Serial Number",
+    source = "Created by R code"
+  ) %>%
+  
+  cb_add_col_attributes(
+    COUNTRY,
+    description = "IMF Member Country",
+    source = "World Economic Outlook Database 2022"
+  ) %>%
+  
+  cb_add_col_attributes(
+    ISO,
+    description = "Country Code for IMF Member Country",
+    source = "World Economic Outlook Database 2022"
+  ) %>%
+  
+  cb_add_col_attributes(
+    YEAR,
+    description = "Year",
+    source = "World Economic Outlook Database 2022"
+  ) %>%
+  
+  cb_add_col_attributes(
+    NGDP_RPCH,
+    description = "% in Gross domestic product, constant prices",
+    source = "World Economic Outlook Database 2022"
+   
+  ) %>% 
+  
+  cb_add_col_attributes(
+    PPPSH,
+    description = "Gross domestic product based on purchasing-power-parity share of world total",
+    source = "World Economic Outlook Database 2022"
+  ) %>% 
+  
+  cb_add_col_attributes(
+    PCPIPCH,
+    description = "% in Inflation, average consumer prices",
+    source = "World Economic Outlook Database 2022"
+  ) %>% 
+  
+  cb_add_col_attributes(
+    LUR,
+    description = "% of population Unemployed",
+    source = "World Economic Outlook Database 2022"
+  ) %>% 
+  
+  cb_add_col_attributes(
+    UR,
+    description = "Nature of Unemployment",
+    source = "created from LUR variable"
+  ) %>%
+  cb_add_col_attributes(
+    LP,
+    description = "Population in Millions",
+    source = "World Economic Outlook Database 2022"
+  ) %>% 
+  cb_add_col_attributes(
+    GGR_NGDP,
+    description = "General government revenue as % of GDP",
+    source = "World Economic Outlook Database 2022"
+  ) %>%
+  cb_add_col_attributes(
+    GGX_NGDP,
+    description = "General government Expenditure as % of GDP",
+    source = "World Economic Outlook Database 2022"
+  ) %>%
+  cb_add_col_attributes(
+    GGXWDN_NGDP,
+    description = "General government net debt as % of GDP",
+    source = "World Economic Outlook Database 2022"
+  ) %>% 
+  cb_add_col_attributes(
+    SUS,
+    description = "Nature of Debt",
+    source = "World Economic Outlook Database 2022"
+  ) %>%
+  cb_add_col_attributes(
+    BCA_NGDPD,
+    description = "Current Account Balance as % of GDP",
+    source = "World Economic Outlook Database 2022"
+  )
+
+codebook = codebook(weo7)  
+print(codebook, target = "codebook_1.docx")  
+ 
+
+library("writexl") 
+write.csv(weo7, "C:/Users/bharg/OneDrive/Desktop/SIS/Data Analysis/awd/World Macroeconomic Outlook.csv", row.names=FALSE)
+save(weo7, file = "World macroeconomic Outlook.RData")
+
+```
+
+## CONCLUSION
+
+With this code chunk, I cleaned a very disorderly available World Macro-Economic Outlook data set and gave a step by step overview of codes used and reason there off. 
